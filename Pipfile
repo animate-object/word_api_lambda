@@ -1,0 +1,18 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+autopep8 = "*"
+pylint = "*"
+
+[packages]
+boto3 = "*"
+pymysql = "*"
+
+[requires]
+python_version = "3.7"
+
+[scripts]
+package = "./scripts/package.sh"
