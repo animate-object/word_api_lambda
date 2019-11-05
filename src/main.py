@@ -6,8 +6,7 @@ import pymysql
 import sys
 from env import DB_HOST, DB_USER, DB_PASS, DB_NAME
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 rds_host = DB_HOST
 user = DB_USER
@@ -18,9 +17,9 @@ try:
     conn = pymysql.connect(rds_host, user=user,
                            passwd=password, db=db_name, connect_timeout=5)
 except pymysql.MySQLError as e:
-    logger.error(
+    logging.error(
         "ERROR: Unexpected error: Could not connect to MySQL instance.")
-    logger.error(e)
+    logging.error(e)
     sys.exit()
 
 Letters = str
@@ -52,18 +51,21 @@ def get_all_words_for_letters(letters: Letters, minLength: Min, maxLength: Max) 
     word_lengths = list(range(minLength + maxLength))
     all_combinations_to_search = get_all_combinations_for_letters_and_lengths(
         letters, word_lengths)
-    logger.debug('Searching for %d sorted combinations.',
-                 len(all_combinations_to_search))
+    logging.debug('Searching for %d sorted combinations.',
+                  len(all_combinations_to_search))
     return query_database_for_combinations(all_combinations_to_search)
 
 
 def query_database_for_combinations(search_combinations: List[str]) -> Words:
+
+    result = []
     with conn.cursor() as cur:
         cur.execute(
             f"SELECT * FROM `word` WHERE `alpha` IN ({', '.join(search_combinations)});")
         for row in cur:
-            logger.info(str(row))
-    return []
+            result.append(str(row))
+            logging.info(str(row))
+    return result
 
 
 def parse_event(event: Dict) -> (Letters, Min, Max):
@@ -92,8 +94,8 @@ def parse_event(event: Dict) -> (Letters, Min, Max):
 
 
 def handle(event, context):
-    logger.debug("Function called with args %s",
-                 json.dumps(dict(event=event, context=context)))
+    logging.debug("Function called with args %s",
+                  json.dumps(dict(event=event, context=context)))
     letters, min_, max_ = parse_event(event)
 
     try:
