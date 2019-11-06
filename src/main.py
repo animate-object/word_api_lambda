@@ -35,7 +35,7 @@ class LambdaStatusException(Exception):
         self.message = message
 
     def toResponse(self):
-        response(self.status, self.message)
+        return response(self.status, self.message)
 
 
 def response(statusCode, body):
