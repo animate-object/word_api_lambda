@@ -39,7 +39,9 @@ class LambdaStatusException(Exception):
 
 
 def response(statusCode, body):
-    return dict(statusCode=statusCode, body=body)
+    return dict(statusCode=statusCode,
+                body=body,
+                headers={'Access-Control-Allow-Origin': '*'})
 
 
 def result(result_list: Words, letters: Letters, min_: Min, max_: Max):
