@@ -6,7 +6,7 @@ import pymysql
 import sys
 from env import DB_HOST, DB_USER, DB_PASS, DB_NAME
 
-logging.basicConfig(level=logging.debug)
+logging.basicConfig(level=logging.DEBUG)
 
 rds_host = DB_HOST
 user = DB_USER
