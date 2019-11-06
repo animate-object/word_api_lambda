@@ -6,7 +6,7 @@ import pymysql
 import sys
 from env import DB_HOST, DB_USER, DB_PASS, DB_NAME
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.debug)
 
 rds_host = DB_HOST
 user = DB_USER
@@ -14,6 +14,7 @@ password = DB_PASS
 db_name = DB_NAME
 
 try:
+    logging.error('in the try block')
     conn = pymysql.connect(rds_host, user=user,
                            passwd=password, db=db_name, connect_timeout=5)
 except pymysql.MySQLError as e:
@@ -41,6 +42,13 @@ def response(statusCode, body):
     return dict(statusCode=statusCode, body=body)
 
 
+def result(result_list: Words, letters: Letters, min_: Min, max_: Max):
+    return dict(
+        result=dict(items=result_list, total=len(result_list)),
+        query=dict(letters=letters, minLength=min_, maxLength=max_)
+    )
+
+
 def get_all_combinations_for_letters_and_lengths(letters: Letters, lengths: List[int]) -> List[str]:
     all_combinations = chain(*[combinations(letters, n)
                                for n in lengths])
@@ -60,11 +68,11 @@ def query_database_for_combinations(search_combinations: List[str]) -> Words:
 
     result = []
     with conn.cursor() as cur:
+        search_param = ', '.join([f"'{comb}'" for comb in search_combinations])
         cur.execute(
-            f"SELECT * FROM `word` WHERE `alpha` IN ({', '.join(search_combinations)});")
+            f"SELECT * FROM `word` WHERE `alpha` IN ({search_param});")
         for row in cur:
-            result.append(str(row))
-            logging.info(str(row))
+            result.append(row[0])
     return result
 
 
@@ -74,7 +82,7 @@ def parse_event(event: Dict) -> (Letters, Min, Max):
         if any([not l.isalpha() for l in letters_arg]) or len(letters_arg) > 16:
             raise LambdaStatusException(400,
                                         f"Invalid arg letters: {letters_arg}. Letters must be a member of the english alphabet. Max 16 letters allowed")
-        letters = letters_arg.lower()
+        letters = ''.join(sorted(letters_arg.lower()))
 
         max_arg = str(event.get('maxLength'))
         min_arg = str(event.get('minLength'))
@@ -95,13 +103,15 @@ def parse_event(event: Dict) -> (Letters, Min, Max):
 
 def handle(event, context):
     logging.debug("Function called with args %s",
-                  json.dumps(dict(event=event, context=context)))
+                  json.dumps(dict(event=event)))
+    logging.debug("What is context? %s", str(type(context)))
     letters, min_, max_ = parse_event(event)
 
     try:
         data = get_all_words_for_letters(letters, min_, max_)
-        return response(200, data)
+        return response(200, result(data, letters, min_, max_))
     except LambdaStatusException as e:
         return e.toResponse()
-    except Exception:
+    except Exception as e:
+        logging.error(e)
         return response(500, 'Unexpected error.')

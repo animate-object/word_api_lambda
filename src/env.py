@@ -1,8 +1,8 @@
-import boto3
-import os
-import logging
 
 from base64 import b64decode
+import logging
+import os
+import boto3
 
 
 logging.basicConfig(level=logging.INFO)
@@ -23,4 +23,5 @@ if (any([required is None for required in [DB_USER, DB_PASS, DB_HOST, DB_NAME]])
     logging.error("Missing required option, one of DB_USER %s, DB_PASS %s, DB_HOST %s, DB_NAME %s",
                   DB_USER, 'present' if DB_PASS else 'not present', DB_HOST, DB_NAME)
 else:
-    loggin.info("Started up with config values DB_USER %s, DB_PASS <pw>, DB_HOST %s, DB_NAME %s", DB_USER, DB_HOST DB_NAME)
+    logging.info("Started up with config values DB_USER %s, DB_PASS <pw>, DB_HOST %s, DB_NAME %s",
+                 DB_USER, DB_HOST, DB_NAME)
