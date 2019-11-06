@@ -98,7 +98,8 @@ def parse_event(event: Dict) -> (Letters, Min, Max):
 
         return letters, min_, max_
     except:
-        raise RuntimeError(400, 'Error parsing event payload.')
+        raise LambdaStatusException(
+            400, f"Error parsing event payload {json.dumps(event)}.")
 
 
 def handle(event, context):
@@ -112,6 +113,6 @@ def handle(event, context):
         return response(200, result(data, letters, min_, max_))
     except LambdaStatusException as e:
         return e.toResponse()
-    except Exception as e:
+    except (Exception, RuntimeError) as e:
         logging.error(e)
         return response(500, 'Unexpected error.')

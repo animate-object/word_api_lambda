@@ -5,7 +5,7 @@ import os
 import boto3
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 logging.info("SETTING UP ENV VARS")
 
