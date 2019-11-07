@@ -2,26 +2,10 @@ from typing import List, Dict, Union,  Any
 from itertools import chain, combinations
 import logging
 import json
-import pymysql
-import sys
-from env import DB_HOST, DB_USER, DB_PASS, DB_NAME
+from env import get_db_connection
 
-logging.basicConfig(level=logging.DEBUG)
+logging.getLogger().setLevel(level=logging.INFO)
 
-rds_host = DB_HOST
-user = DB_USER
-password = DB_PASS
-db_name = DB_NAME
-
-try:
-    logging.error('in the try block')
-    conn = pymysql.connect(rds_host, user=user,
-                           passwd=password, db=db_name, connect_timeout=5)
-except pymysql.MySQLError as e:
-    logging.error(
-        "ERROR: Unexpected error: Could not connect to MySQL instance.")
-    logging.error(e)
-    sys.exit()
 
 Letters = str
 Words = List[str]
@@ -41,7 +25,7 @@ class LambdaStatusException(Exception):
 def response(statusCode, body):
     return dict(statusCode=statusCode,
                 body=body,
-                headers={'Access-Control-Allow-Origin': '*'})
+                headers={'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'})
 
 
 def result(result_list: Words, letters: Letters, min_: Min, max_: Max):
@@ -61,15 +45,14 @@ def get_all_words_for_letters(letters: Letters, minLength: Min, maxLength: Max) 
     word_lengths = list(range(minLength + maxLength))
     all_combinations_to_search = get_all_combinations_for_letters_and_lengths(
         letters, word_lengths)
-    logging.debug('Searching for %d sorted combinations.',
-                  len(all_combinations_to_search))
+    logging.info('Searching for %d sorted combinations.',
+                 len(all_combinations_to_search))
     return query_database_for_combinations(all_combinations_to_search)
 
 
 def query_database_for_combinations(search_combinations: List[str]) -> Words:
 
-    result = []
-    with conn.cursor() as cur:
+    with get_db_connection().cursor() as cur:
         search_param = ', '.join([f"'{comb}'" for comb in search_combinations])
         cur.execute(
             f"SELECT * FROM `word` WHERE `alpha` IN ({search_param});")
@@ -105,9 +88,8 @@ def parse_event(event: Dict) -> (Letters, Min, Max):
 
 
 def handle(event, context):
-    logging.debug("Function called with args %s",
-                  json.dumps(dict(event=event)))
-    logging.debug("What is context? %s", str(type(context)))
+    logging.info("Function called with args %s",
+                 json.dumps(dict(event=event)))
     letters, min_, max_ = parse_event(event)
 
     try:

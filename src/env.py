@@ -3,25 +3,84 @@ from base64 import b64decode
 import logging
 import os
 import boto3
+import pymysql
 
-
-logging.basicConfig(level=logging.DEBUG)
-
-logging.info("SETTING UP ENV VARS")
 
 DB_PASS_ENCRYPTED = os.environ['DB_PASSWORD']
-# Decrypt code should run once and variables stored outside of the function
-# handler so that these are decrypted once per container
-DB_PASS = boto3.client('kms').decrypt(
-    CiphertextBlob=b64decode(DB_PASS_ENCRYPTED))['Plaintext']
-
 DB_USER = os.environ['DB_USER']
 DB_HOST = os.environ['DB_HOST']
 DB_NAME = os.environ['DB_NAME']
 
-if (any([required is None for required in [DB_USER, DB_PASS, DB_HOST, DB_NAME]])):
-    logging.error("Missing required option, one of DB_USER %s, DB_PASS %s, DB_HOST %s, DB_NAME %s",
-                  DB_USER, 'present' if DB_PASS else 'not present', DB_HOST, DB_NAME)
-else:
-    logging.info("Started up with config values DB_USER %s, DB_PASS <pw>, DB_HOST %s, DB_NAME %s",
-                 DB_USER, DB_HOST, DB_NAME)
+
+class DbConfig:
+    def __init__(self, encrypted_pw, user, host, name):
+        if any([required is None for required in [encrypted_pw, user, host, name]]):
+            logging.error("Required option was None, pw %s, user %s, host %s, name %s",
+                          *['present' if option else 'not present' for option in [encrypted_pw, user, host, name]]
+                          )
+            raise RuntimeError("Missing required envvar.")
+        self.pw = self.decrypt(encrypted_pw)
+        self.user = user
+        self.host = host
+        self.name = name
+        logging.info("Application configured.")
+
+    def decrypt(self, encrypted):
+        try:
+            return boto3.client('kms').decrypt(
+                CiphertextBlob=b64decode(encrypted))['Plaintext']
+        except:
+            raise RuntimeError("Error decrypting pw.")
+
+    def getHost(self):
+        return self.host
+
+    def getPw(self):
+        return self.pw
+
+    def getName(self):
+        return self.name
+
+    def getUser(self):
+        return self.user
+
+
+DB_CONFIG = None
+
+
+def get_db_config() -> DbConfig:
+    global DB_CONFIG
+    if (DB_CONFIG == None):
+        logging.info(
+            "DBConfig not initialized. Parsing environment variables.")
+        DB_CONFIG = DbConfig(DB_PASS_ENCRYPTED, DB_USER, DB_HOST, DB_NAME)
+        logging.info("DbConfig set.")
+    else:
+        logging.info("Reusing previous DbConfig.")
+    return DB_CONFIG
+
+
+DB_CONNECTION = None
+
+
+def get_db_connection():
+    global DB_CONNECTION
+    config = get_db_config()
+    if (DB_CONNECTION == None):
+        try:
+            logging.info('Attempting to open DbConnection')
+            DB_CONNECTION = pymysql.connect(
+                config.getHost(),
+                user=config.getUser(),
+                passwd=config.getPw(),
+                db=config.getName(),
+                connect_timeout=5
+            )
+            logging.info('Set DbConnection to be reused')
+        except pymysql.MySQLError as e:
+            logging.error(
+                "ERROR: Unexpected error: Could not connect Db.")
+            logging.error(e)
+    else:
+        logging.info("Reusing DbConnection")
+    return DB_CONNECTION
