@@ -2,9 +2,9 @@ from typing import List, Dict, Union,  Any
 from itertools import chain, combinations
 import logging
 import json
-from env import get_db_connection
+from env import get_db_connection, get_log_level
 
-logging.getLogger().setLevel(level=logging.INFO)
+logging.getLogger().setLevel(level=get_log_level())
 
 
 Letters = str

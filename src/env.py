@@ -10,6 +10,18 @@ DB_PASS_ENCRYPTED = os.environ['DB_PASSWORD']
 DB_USER = os.environ['DB_USER']
 DB_HOST = os.environ['DB_HOST']
 DB_NAME = os.environ['DB_NAME']
+LOG_LEVEL = os.environ['LOG_LEVEL']
+
+
+def get_log_level() -> int:
+    if LOG_LEVEL == None or LOG_LEVEL == "INFO":
+        return logging.INFO
+    elif LOG_LEVEL == "DEBUG":
+        return logging.DEBUG
+    elif LOG_LEVEL == "WARNING":
+        return logging.WARNING
+    elif LOG_LEVEL == "ERROR":
+        return logging.ERROR
 
 
 class DbConfig:
