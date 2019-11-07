@@ -13,8 +13,8 @@ Words = List[str]
 
 class Bounds:
     def __init__(self, min_, max_):
-    self.min_ = min_
-    self.max_ = max_
+        self.min_ = min_
+        self.max_ = max_
 
     def getMin(self):
         return self.min_
