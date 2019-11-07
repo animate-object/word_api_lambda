@@ -93,6 +93,7 @@ def get_db_connection():
             logging.error(
                 "ERROR: Unexpected error: Could not connect Db.")
             logging.error(e)
+            raise RuntimeError("Error connecting to DB")
     else:
         logging.info("Reusing DbConnection")
     return DB_CONNECTION
