@@ -6,11 +6,11 @@ import boto3
 import pymysql
 
 
-DB_PASS_ENCRYPTED = os.environ['DB_PASSWORD']
-DB_USER = os.environ['DB_USER']
-DB_HOST = os.environ['DB_HOST']
-DB_NAME = os.environ['DB_NAME']
-LOG_LEVEL = os.environ['LOG_LEVEL']
+DB_PASS_ENCRYPTED = os.environ.get('DB_PASSWORD')
+DB_USER = os.environ.get('DB_USER')
+DB_HOST = os.environ.get('DB_HOST')
+DB_NAME = os.environ.get('DB_NAME')
+LOG_LEVEL = os.environ.get('LOG_LEVEL')
 
 
 def get_log_level() -> int:
