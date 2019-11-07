@@ -9,8 +9,18 @@ logging.getLogger().setLevel(level=get_log_level())
 
 Letters = str
 Words = List[str]
-Min = int
-Max = int
+
+
+class Bounds:
+    def __init__(self, min_, max_):
+        self.min_ = min_
+        self.max_ = max_
+
+    def getMin(self):
+        return self.min_
+
+    def getMax(self):
+        return self.max_
 
 
 class LambdaStatusException(Exception):
@@ -41,8 +51,8 @@ def get_all_combinations_for_letters_and_lengths(letters: Letters, lengths: List
     return(list(''.join(combination) for combination in all_combinations))
 
 
-def get_all_words_for_letters(letters: Letters, minLength: Min, maxLength: Max) -> Words:
-    word_lengths = list(range(minLength + maxLength))
+def get_all_words_for_letters(letters: Letters, bounds: Bounds) -> Words:
+    word_lengths = list(range(bounds.getMin() + bounds.getMax()))
     all_combinations_to_search = get_all_combinations_for_letters_and_lengths(
         letters, word_lengths)
     logging.info('Searching for %d sorted combinations.',
@@ -61,7 +71,7 @@ def query_database_for_combinations(search_combinations: List[str]) -> Words:
     return result
 
 
-def parse_event(event: Dict) -> (Letters, Min, Max):
+def parse_event(event: Dict) -> (Letters, Bounds):
     try:
         letters_arg = event['letters']
         if any([not l.isalpha() for l in letters_arg]) or len(letters_arg) > 16:
@@ -81,7 +91,7 @@ def parse_event(event: Dict) -> (Letters, Min, Max):
             raise LambdaStatusException(
                 400, f"Invalid minLength arg, minLength must be between 1 and 7")
 
-        return letters, min_, max_
+        return letters, Bounds(min_, max_)
     except:
         raise LambdaStatusException(
             400, f"Error parsing event payload {json.dumps(event)}.")
@@ -90,11 +100,11 @@ def parse_event(event: Dict) -> (Letters, Min, Max):
 def handle(event, context):
     logging.info("Function called with args %s",
                  json.dumps(dict(event=event)))
-    letters, min_, max_ = parse_event(event)
+    letters, bounds = parse_event(event)
 
     try:
-        data = get_all_words_for_letters(letters, min_, max_)
-        return response(200, result(data, letters, min_, max_))
+        data = get_all_words_for_letters(letters, bounds)
+        return response(200, result(data, letters, bounds.getMin(), bounds.getMax()))
     except LambdaStatusException as e:
         return e.toResponse()
     except (Exception, RuntimeError) as e:
