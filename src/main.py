@@ -13,8 +13,8 @@ Words = List[str]
 
 class Bounds:
     def __init__(self, min_, max_):
-        self.min_ = min_
-        self.max_ = max_
+    self.min_ = min_
+    self.max_ = max_
 
     def getMin(self):
         return self.min_
@@ -38,10 +38,11 @@ def response(statusCode, body):
                 headers={'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'})
 
 
-def result(result_list: Words, letters: Letters, min_: Min, max_: Max):
+def result(result_list: Words, letters: Letters, bounds: Bounds):
     return dict(
         result=dict(items=result_list, total=len(result_list)),
-        query=dict(letters=letters, minLength=min_, maxLength=max_)
+        query=dict(letters=letters, minLength=bounds.getMin(),
+                   maxLength=bounds.getMax())
     )
 
 
