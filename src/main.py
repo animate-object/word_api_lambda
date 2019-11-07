@@ -105,7 +105,7 @@ def handle(event, context):
 
     try:
         data = get_all_words_for_letters(letters, bounds)
-        return response(200, result(data, letters, bounds.getMin(), bounds.getMax()))
+        return response(200, result(data, letters, bounds))
     except LambdaStatusException as e:
         return e.toResponse()
     except (Exception, RuntimeError) as e:
