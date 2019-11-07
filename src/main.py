@@ -51,7 +51,7 @@ def get_all_words_for_letters(letters: Letters, minLength: Min, maxLength: Max) 
 
 
 def query_database_for_combinations(search_combinations: List[str]) -> Words:
-
+    result = []
     with get_db_connection().cursor() as cur:
         search_param = ', '.join([f"'{comb}'" for comb in search_combinations])
         cur.execute(
