@@ -7,10 +7,6 @@ from env import get_db_connection, get_log_level
 logging.getLogger().setLevel(level=get_log_level())
 
 
-Letters = str
-Words = List[str]
-
-
 class Bounds:
     def __init__(self, min_, max_):
         self.min_ = min_
@@ -21,6 +17,13 @@ class Bounds:
 
     def getMax(self):
         return self.max_
+
+
+Letters = str
+Words = List[str]
+SpellableQuery = (Bounds, Letters)
+MatchSubstringQuery = (Bounds, Bounds)
+Query = Union()
 
 
 class LambdaStatusException(Exception):
@@ -38,7 +41,7 @@ def response(statusCode, body):
                 headers={'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'})
 
 
-def result(result_list: Words, letters: Letters, bounds: Bounds):
+def spellable_result(result_list: Words, letters: Letters, bounds: Bounds):
     return dict(
         result=dict(items=result_list, total=len(result_list)),
         query=dict(letters=letters, minLength=bounds.getMin(),
@@ -52,7 +55,7 @@ def get_all_combinations_for_letters_and_lengths(letters: Letters, lengths: List
     return(list(''.join(combination) for combination in all_combinations))
 
 
-def get_all_words_for_letters(letters: Letters, bounds: Bounds) -> Words:
+def get_spellable_words_for_letters(letters: Letters, bounds: Bounds) -> Words:
     word_lengths = list(range(bounds.getMin() + bounds.getMax()))
     all_combinations_to_search = get_all_combinations_for_letters_and_lengths(
         letters, word_lengths)
@@ -72,7 +75,24 @@ def query_database_for_combinations(search_combinations: List[str]) -> Words:
     return result
 
 
-def parse_event(event: Dict) -> (Letters, Bounds):
+def query_database_matching_substrings(substringBounds, bounds) -> Dict:
+    result = {}
+    subMin = substringBounds.getMin() + 1
+    subMax = substringBounds.getMax() + 1
+    with get_db_connection().cursor() as cur:
+        cur.execute(f"""
+        SELECT substring(`ordered`, {subMin + 1}, {subMax + 1}), COUNT(*)
+            FROM `word`
+            WHERE LENGTH(`ordered`) > 0
+            AND LENGTH(`ordered`) < 4
+            GROUP BY substring(`ordered`, {subMin + 1}, {subMax + 1});
+        """)
+        for row in cur:
+            result[row[0]] = row[1]
+    return result
+
+
+def parse_spellable_query(event: Dict) -> (Letters, Bounds):
     try:
         letters_arg = event['letters']
         if any([not l.isalpha() for l in letters_arg]) or len(letters_arg) > 16:
@@ -98,14 +118,62 @@ def parse_event(event: Dict) -> (Letters, Bounds):
             400, f"Error parsing event payload {json.dumps(event)}.")
 
 
+def parse_matching_substring_query(event: Dict) -> (Bounds, Bounds):
+    try:
+        max_arg = str(event.get('maxLength'))
+        min_arg = str(event.get('minLength'))
+        max_ = int(max_arg) if max_arg.isdigit() else 7
+        min_ = int(min_arg) if min_arg.isdigit() else 1
+
+        start_arg = str(event.get('startLength'))
+        end_arg = str(event.get('endLength'))
+        start = int(start_arg) if start_arg.isdigit() else 0
+        end = int(end_arg) if end_arg.isdigit() else 2
+
+        if (max_ > 7 or max_ < 1):
+            raise LambdaStatusException(
+                400, f"Invalid maxLength arg, maxLength must be between 1 and 7")
+        elif (min_ > 7 or min_ < 1):
+            raise LambdaStatusException(
+                400, f"Invalid minLength arg, minLength must be between 1 and 7")
+
+        return Bounds(min_, max_), Bounds(start, end)
+    except:
+        raise LambdaStatusException(
+            400, f"Error parsing event payload {json.dumps(event)}.")
+
+
+def parse_event(event: Dict) -> Query:
+    # Legacy path
+    if (event['letters']):
+        logging.info("Legacy spellable query parsed")
+        return parse_spellable_query(event)
+    if (event['queryType']):
+        queryType = event['queryType']
+        if (queryType == 'spellable'):
+            return parse_spellable_query(event['query'])
+        elif (queryType == 'matchSubstring'):
+            return parse_matching_substring_query(event['query'])
+        raise LambdaStatusException(400, f"Invalid query type {queryType}")
+    raise LambdaStatusException(
+        400, f"Error parsing event payload {json.dumps(event)}.")
+
+
 def handle(event, context):
     logging.info("Function called with args %s",
                  json.dumps(dict(event=event)))
-    letters, bounds = parse_event(event)
+    query = parse_event(event)
 
     try:
-        data = get_all_words_for_letters(letters, bounds)
-        return response(200, result(data, letters, bounds))
+        if (type(query) == SpellableQuery):
+            letters, bounds = query
+            data = get_spellable_words_for_letters(letters, bounds)
+            return response(200, spellable_result(data, letters, bounds))
+        elif (type(query) == MatchSubstringQuery):
+            substringBounds, bounds = query
+            data = query_database_matching_substrings(substringBounds, bounds)
+            return response(200, "")
+
     except LambdaStatusException as e:
         return e.toResponse()
     except (Exception, RuntimeError) as e:
