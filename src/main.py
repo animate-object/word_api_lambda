@@ -93,7 +93,7 @@ def query_database_match_substrings(substringBounds, bounds) -> Dict:
         SELECT substring(`ordered`, {subMin}, {subMax}), COUNT(*)
             FROM `word`
             WHERE LENGTH(`ordered`) > {bounds.getMin()}
-            AND LENGTH(`ordered`) < {bounds.getMax()}
+            AND LENGTH(`ordered`) < {bounds.getMax() + 1}
             GROUP BY substring(`ordered`, {subMin}, {subMax});
         """)
         for row in cur:
