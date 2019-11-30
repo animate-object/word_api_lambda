@@ -156,7 +156,7 @@ def parse_starts_with_query(query: Dict) -> (Letters, Bounds):
         if any([not l.isalpha() for l in starts_with_arg]) or len(starts_with_arg) > 5:
             raise LambdaStatusException(400,
                                         f"Invalid arg starts_with: {starts_with_arg}. Letters must be a member of the english alphabet. Max 5 letters allowed")
-        starts_with = ''.join(sorted(starts_with_arg.lower()))
+        starts_with = ''.join(starts_with_arg.lower())
 
         max_arg = str(query.get('maxLength'))
         min_arg = str(query.get('minLength'))
