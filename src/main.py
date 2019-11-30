@@ -87,14 +87,14 @@ def query_database_for_combinations(search_combinations: List[str]) -> Words:
 def query_database_match_substrings(substringBounds, bounds) -> Dict:
     result = {}
     subMin = substringBounds.getMin() + 1
-    subMax = substringBounds.getMax() + 1
+    subMax = substringBounds.getMax()
     with get_db_connection().cursor() as cur:
         cur.execute(f"""
-        SELECT substring(`ordered`, {subMin + 1}, {subMax + 1}), COUNT(*)
+        SELECT substring(`ordered`, {subMin}, {subMax}), COUNT(*)
             FROM `word`
             WHERE LENGTH(`ordered`) > 0
             AND LENGTH(`ordered`) < 4
-            GROUP BY substring(`ordered`, {subMin + 1}, {subMax + 1});
+            GROUP BY substring(`ordered`, {subMin}, {subMax});
         """)
         for row in cur:
             result[row[0]] = row[1]
@@ -134,8 +134,8 @@ def parse_match_substring_query(query: Dict) -> (Bounds, Bounds):
         max_ = int(max_arg) if max_arg.isdigit() else 7
         min_ = int(min_arg) if min_arg.isdigit() else 1
 
-        start_arg = str(query.get('startLength'))
-        end_arg = str(query.get('endLength'))
+        start_arg = str(query.get('start'))
+        end_arg = str(query.get('end'))
         start = int(start_arg) if start_arg.isdigit() else 0
         end = int(end_arg) if end_arg.isdigit() else 2
 
