@@ -152,7 +152,7 @@ def parse_spellable_query(query: Dict) -> (Letters, Bounds):
 
 def parse_starts_with_query(query: Dict) -> (Letters, Bounds):
     try:
-        starts_with_arg = query['starts_with']
+        starts_with_arg = query['startsWith']
         if any([not l.isalpha() for l in starts_with_arg]) or len(starts_with_arg) > 5:
             raise LambdaStatusException(400,
                                         f"Invalid arg starts_with: {starts_with_arg}. Letters must be a member of the english alphabet. Max 5 letters allowed")
