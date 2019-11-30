@@ -92,7 +92,7 @@ def query_database_for_combinations(search_combinations: List[str]) -> Words:
     return result
 
 
-def query_database_for_words_starting_with(starts_with, bounds): Words:
+def query_database_for_words_starting_with(starts_with, bounds): -> Words:
     result = []
     with get_db_connection().cursor() as cur:
         cur.execute(f"""
