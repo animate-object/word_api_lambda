@@ -92,8 +92,8 @@ def query_database_match_substrings(substringBounds, bounds) -> Dict:
         cur.execute(f"""
         SELECT substring(`ordered`, {subMin}, {subMax}), COUNT(*)
             FROM `word`
-            WHERE LENGTH(`ordered`) > 0
-            AND LENGTH(`ordered`) < 4
+            WHERE LENGTH(`ordered`) > {bounds.getMin()}
+            AND LENGTH(`ordered`) < {bounds.getMax()}
             GROUP BY substring(`ordered`, {subMin}, {subMax});
         """)
         for row in cur:
@@ -146,7 +146,7 @@ def parse_match_substring_query(query: Dict) -> (Bounds, Bounds):
             raise LambdaStatusException(
                 400, f"Invalid minLength arg, minLength must be between 1 and 7")
 
-        return Bounds(min_, max_), Bounds(start, end)
+        return Bounds(start, end), Bounds(min_, max_)
     except:
         raise LambdaStatusException(
             400, f"Error parsing query payload {json.dumps(query)}.")
